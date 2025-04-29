@@ -25,6 +25,7 @@
                     {% if current_user.role == 'admin' %}
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('admin_dashboard') }}">管理面板</a></li>
                     {% endif %}
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('scanner') }}">扫码检票</a></li>
                 </ul>
                 <span class="navbar-text text-white me-3">欢迎, {{ current_user.username }}</span>
                 <a href="{{ url_for('user_profile') }}" class="btn btn-outline-light me-2">个人资料</a>
