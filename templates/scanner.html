@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}扫码检票{% endblock %}
+{% block content %}
+<h1 class="mb-4">检票扫码系统</h1>
+
+<div class="card mx-auto" style="max-width: 400px;">
+    <div class="card-body p-0">
+        <div id="reader" class="w-100"></div>
+    </div>
+</div>
+
+<div class="result mt-3" id="result">等待扫码中...</div>
+
+<!-- 响应式历史记录 -->
+<table class="table table-striped table-hover align-middle mt-4">
+    <thead class="table-dark">
+        <tr>
+            <th>时间</th>
+            <th>二维码内容</th>
+            <th>验证结果</th>
+        </tr>
+    </thead>
+    <tbody id="history"></tbody>
+</table>
+
+<!-- 提示音 -->
+<audio id="beep-valid" src="{{ url_for('static', filename='audio/beep_valid.mp3') }}" preload="auto"></audio>
+<audio id="beep-invalid" src="{{ url_for('static', filename='audio/beep_invalid.mp3') }}" preload="auto"></audio>
+<audio id="beep-error" src="{{ url_for('static', filename='audio/beep_error.mp3') }}" preload="auto"></audio>
+
+<script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const resultElement = document.getElementById('result');
+        const historyTable = document.getElementById('history');
+        const scannedSet = new Set();
+        const scanInterval = 1500;
+        let lastScanTime = 0;
+
+        const beepValid = document.getElementById('beep-valid');
+        const beepInvalid = document.getElementById('beep-invalid');
+        const beepError = document.getElementById('beep-error');
+
+        function playBeep(type) {
+            switch (type) {
+                case 'valid': beepValid.play(); break;
+                case 'invalid': beepInvalid.play(); break;
+                case 'error': beepError.play(); break;
+            }
+        }
+
+        function showResult(text, status) {
+            resultElement.textContent = text;
+            resultElement.className = `result ${status}`;
+        }
+
+        function addHistory(code, statusText, statusClass) {
+            const tr = document.createElement('tr');
+            const time = new Date().toLocaleTimeString();
+            tr.innerHTML = `
+            <td>${time}</td>
+            <td>${code}</td>
+            <td class="${statusClass}">${statusText}</td>`;
+            historyTable.insertBefore(tr, historyTable.firstChild);
+        }
+
+        function verifyCode(qrCodeText) {
+            fetch("{{ url_for('scan') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ code: qrCodeText })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showResult(`✅ 验证成功：${data.name} (${data.note})`, 'valid');
+                        playBeep('valid');
+                        addHistory(qrCodeText, '合法', 'valid');
+                    } else {
+                        showResult(`❌ ${data.error || "二维码无效"}`, 'invalid');
+                        playBeep('invalid');
+                        addHistory(qrCodeText, data.error || '无效', 'invalid');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showResult(`⚠️ 请求失败：${err.message}`, 'error');
+                    playBeep('error');
+                    addHistory(qrCodeText, '网络异常', 'error');
+                });
+        }
+
+        function onScanSuccess(decodedText) {
+            const now = Date.now();
+            if (now - lastScanTime < scanInterval) return;
+            lastScanTime = now;
+
+            if (!scannedSet.has(decodedText)) {
+                scannedSet.add(decodedText);
+                verifyCode(decodedText);
+            }
+        }
+
+        const html5QrCode = new Html5Qrcode("reader");
+        Html5Qrcode.getCameras().then(devices => {
+            if (devices && devices.length) {
+                html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: 250 },
+                    onScanSuccess
+                ).catch(err => {
+                    showResult("启动摄像头失败：" + err, 'error');
+                    playBeep('error');
+                });
+            }
+        }).catch(err => {
+            showResult("无法访问摄像头：" + err, 'error');
+            playBeep('error');
+        });
+
+        function fallbackToFirstDevice(errorMessage) {
+            console.warn("环境模式失败:", errorMessage);
+
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices?.length > 0) {
+                    html5QrCode.start(
+                        devices[0].id,
+                        { fps: 10, qrbox: 250 },
+                        onScanSuccess
+                    );
+                }
+            }).catch(console.error);
+        }
+
+    });
+</script>
+{% endblock %}

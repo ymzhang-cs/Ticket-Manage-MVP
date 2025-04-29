@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>检票扫码系统</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f4f4f4;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    #reader {
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      border: 3px solid #ccc;
+      border-radius: 12px;
+      background: white;
+    }
+
+    .result {
+      margin-top: 20px;
+      font-size: 1.3em;
+      font-weight: bold;
+    }
+
+    .valid {
+      color: #2ecc71;
+    }
+
+    .invalid {
+      color: #e74c3c;
+    }
+
+    .error {
+      color: #f39c12;
+    }
+
+    table {
+      width: 100%;
+      max-width: 600px;
+      margin: 20px auto;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+
+    th {
+      background: #f0f0f0;
+    }
+
+    @media (max-width: 600px) {
+
+      table,
+      thead,
+      tbody,
+      th,
+      td,
+      tr {
+        display: block;
+      }
+
+      td {
+        position: relative;
+        padding-left: 50%;
+      }
+
+      td::before {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 45%;
+        white-space: nowrap;
+        font-weight: bold;
+      }
+
+      td:nth-of-type(1)::before {
+        content: "时间";
+      }
+
+      td:nth-of-type(2)::before {
+        content: "二维码内容";
+      }
+
+      td:nth-of-type(3)::before {
+        content: "结果";
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>检票扫码系统</h1>
+  <div id="reader"></div>
+  <div class="result" id="result">等待扫码中...</div>
+
+  <table id="history">
+    <thead>
+      <tr>
+        <th>时间</th>
+        <th>二维码内容</th>
+        <th>验证结果</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- 提示音 -->
+  <audio id="beep-valid" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_13d93b469d.mp3"
+    preload="auto"></audio>
+  <audio id="beep-invalid" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_18443d9f26.mp3"
+    preload="auto"></audio>
+  <audio id="beep-error" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_7945d9bca9.mp3"
+    preload="auto"></audio>
+
+  <script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"></script>
+
+  <script>
+    const resultElement = document.getElementById('result');
+    const historyTable = document.getElementById('history').querySelector('tbody');
+    const scannedSet = new Set();
+    const scanInterval = 1500; // 1.5秒防重复
+    let lastScanTime = 0;
+
+    const beepValid = document.getElementById('beep-valid');
+    const beepInvalid = document.getElementById('beep-invalid');
+    const beepError = document.getElementById('beep-error');
+
+    function playBeep(type) {
+      switch (type) {
+        case 'valid': beepValid.play(); break;
+        case 'invalid': beepInvalid.play(); break;
+        case 'error': beepError.play(); break;
+      }
+    }
+
+    function showResult(text, status) {
+      resultElement.textContent = text;
+      resultElement.className = `result ${status}`;
+    }
+
+    function addHistory(code, statusText, statusClass) {
+      const tr = document.createElement('tr');
+      const time = new Date().toLocaleTimeString();
+      tr.innerHTML = `<td>${time}</td><td>${code}</td><td class="${statusClass}">${statusText}</td>`;
+      historyTable.insertBefore(tr, historyTable.firstChild);
+    }
+
+    function verifyCode(qrCodeText) {
+      const verifyUrl = `https://example.com/api/verify?code=${encodeURIComponent(qrCodeText)}`;
+
+      fetch(verifyUrl)
+        .then(res => res.json())
+        .then(data => {
+          if (data.valid) {
+            showResult(`✅ 合法：${qrCodeText}`, 'valid');
+            playBeep('valid');
+            addHistory(qrCodeText, '合法', 'valid');
+          } else {
+            showResult(`❌ 无效：${qrCodeText}`, 'invalid');
+            playBeep('invalid');
+            addHistory(qrCodeText, '无效', 'invalid');
+          }
+        })
+        .catch(err => {
+          showResult(`⚠️ 请求失败：${err}`, 'error');
+          playBeep('error');
+          addHistory(qrCodeText, '请求失败', 'error');
+        });
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+      const now = Date.now();
+      if (now - lastScanTime < scanInterval) return;
+      lastScanTime = now;
+
+      if (!scannedSet.has(decodedText)) {
+        scannedSet.add(decodedText);
+        verifyCode(decodedText);
+      }
+    }
+
+    const html5QrCode = new Html5Qrcode("reader");
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        const cameraId = devices[0].id;
+        html5QrCode.start(
+          cameraId,
+          { fps: 10, qrbox: 250 },
+          onScanSuccess,
+          err => { /* 可忽略扫描错误 */ }
+        ).catch(err => {
+          showResult("启动摄像头失败：" + err, 'error');
+          playBeep('error');
+        });
+      }
+    }).catch(err => {
+      showResult("无法访问摄像头：" + err, 'error');
+      playBeep('error');
+    });
+  </script>
+</body>
+
+</html>

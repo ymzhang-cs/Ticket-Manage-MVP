@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}扫码检票{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h3 class="card-title mb-0">实时扫码</h3>
+            </div>
+            <div class="card-body">
+                <div id="reader" style="width: 100%;"></div>
+                <div id="result" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4 class="card-title mb-0">使用说明</h4>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>请确保摄像头已授权</li>
+                    <li>将二维码置于取景框内</li>
+                    <li>绿色提示表示验证成功</li>
+                    <li>红色提示表示异常情况</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HTML5-QRCode JS -->
+<script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const resultDiv = document.getElementById('result');
+
+        function onScanSuccess(decodedText) {
+            fetch('{{ url_for("scan") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: decodedText })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    let html = `<div class="alert ${data.success ? 'alert-success' : 'alert-danger'}">${data.success ? '验证成功' : '错误'}：${data.message || data.error}</div>`;
+                    resultDiv.innerHTML = html;
+
+                    // 5秒后清空结果
+                    setTimeout(() => { resultDiv.innerHTML = ''; }, 5000);
+                });
+        }
+
+        new Html5Qrcode("reader").start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 250 },
+            onScanSuccess
+        );
+    });
+</script>
+{% endblock %}
