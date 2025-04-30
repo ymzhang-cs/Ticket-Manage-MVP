@@ -5,3 +5,4 @@ Werkzeug
 openpyxl
 qrcode
 Pillow
+gunicorn

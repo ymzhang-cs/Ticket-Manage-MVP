@@ -123,7 +123,7 @@ def import_excel():
     if not file.filename.endswith(('.xlsx', '.xls')):
         return jsonify({'error': '文件格式错误'}), 400
     upload_folder = current_app.config['UPLOAD_FOLDER']
-    os.makedirs(filepath, exist_ok=True)  # 确保目录存在
+    os.makedirs(upload_folder, exist_ok=True)  # 确保目录存在
     
     # 生成新文件名
     username = current_user.username
@@ -132,6 +132,10 @@ def import_excel():
     new_filename = f"{username}-{timestamp}{ext}"
     filepath = os.path.join(upload_folder, secure_filename(new_filename))
     file.save(filepath)
+    
+    success_count = 0
+    fail_count = 0
+
     try:
         wb = load_workbook(filepath)
         ws = wb.active

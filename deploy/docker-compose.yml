@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  ticket:
+    image: ymzhangcs/ticket-manage
+    container_name: ticket_app
+    restart: always
+    expose:
+      - "8080"
+    volumes:
+      - /root/project/data:/app/data
+    environment:
+      - DATA_DIR=/app/data
+    entrypoint: [ "/bin/sh", "-c", "python init_db.py && gunicorn -b 0.0.0.0:8080 app:app" ]
+    working_dir: /app
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - certbot-etc:/etc/letsencrypt
+      - certbot-web:/var/www/certbot
+    depends_on:
+      - ticket
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-web:/var/www/certbot
+    entrypoint: >
+      sh -c "certbot certonly --webroot --webroot-path=/var/www/certbot
+             --email [邮箱] --agree-tos --no-eff-email
+             -d [域名]"
+
+volumes:
+  certbot-etc:
+  certbot-web:
