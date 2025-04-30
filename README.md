@@ -1,5 +1,38 @@
 # Flask 票务管理系统
 
+## Docker 构建
+
+使用 Docker 构建和运行 Flask 票务管理系统。可选，也可以使用 Docker Hub 上的镜像。
+
+```shell
+docker build -t ymzhangcs/ticket-manage:latest .
+```
+
+## 部署（Docker Compose）
+
+确保已安装 Docker 和 Docker Compose。
+
+文件结构如下（已经在仓库的 deploy 文件夹下），按需替换 `[域名]` 和 `[邮箱]`：
+
+```
+deploy/
+├── docker-compose.yml
+└── nginx/
+    └── nginx.conf
+```
+
+在 `deploy` 文件夹下，运行以下命令获取证书（只需要运行一次）：
+
+```shell
+docker-compose run --rm certbot
+```
+
+然后，运行以下命令启动应用和 Nginx：
+
+```shell
+docker-compose up -d
+```
+
 ## 前端页面组织
 
 所有前端页面位于 `templates/` 目录，采用 Flask + Jinja2 模板渲染，主要页面包括：
@@ -48,9 +81,3 @@
 - `LoginLog`：登录日志（id, username, success, ip_address, user_agent, timestamp）
 
 各表通过外键关联，支持用户、票务、日志等多维度管理。
-
----
-
-如需初始化数据库，运行 `init_db.py`。
-如需启动服务，运行 `flask run --host=0.0.0.0 --port=5000`。
-详细功能和页面可参考各模板文件和路由实现。
