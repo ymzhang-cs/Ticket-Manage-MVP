@@ -54,7 +54,8 @@
                     <div class="mb-3">
                         <label class="form-label">新密码</label>
                         <input type="password" name="new_password" class="form-control" required placeholder="请输入新密码"
-                            autocomplete="new-password">
+                            autocomplete="new-password" id="profileNewPassword">
+                        <div id="profilePwdHint" class="form-text text-danger"></div>
                     </div>
 
                     <button type="submit" class="btn btn-success w-100">
@@ -107,4 +108,22 @@
         </div>
     </div>
 </div>
+<script>
+    // 密码强度校验
+    function checkPwdStrength(pwd) {
+        let msg = [];
+        if (pwd.length < 8) msg.push('至少8位');
+        if (!/[A-Z]/.test(pwd)) msg.push('大写字母');
+        if (!/[a-z]/.test(pwd)) msg.push('小写字母');
+        if (!/\d/.test(pwd)) msg.push('数字');
+        if (!/[^A-Za-z0-9]/.test(pwd)) msg.push('特殊字符');
+        return msg.length === 0 ? '密码强度合格' : '需包含：' + msg.join('、');
+    }
+    document.getElementById('profileNewPassword').addEventListener('input', function () {
+        const hint = document.getElementById('profilePwdHint');
+        const msg = checkPwdStrength(this.value);
+        hint.textContent = msg;
+        hint.className = msg === '密码强度合格' ? 'form-text text-success' : 'form-text text-danger';
+    });
+</script>
 {% endblock %}

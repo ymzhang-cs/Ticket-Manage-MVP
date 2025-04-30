@@ -12,7 +12,9 @@
                 <input type="text" class="form-control" placeholder="用户名" required name="username">
             </div>
             <div class="col-md-3">
-                <input type="password" class="form-control" placeholder="密码" required name="password">
+                <input type="password" class="form-control" placeholder="密码" required name="password"
+                    id="createUserPassword">
+                <div id="createUserPwdHint" class="form-text text-danger"></div>
             </div>
             <div class="col-md-3">
                 <select class="form-select" name="role">
@@ -91,5 +93,22 @@
             .then(response => response.json())
             .then(() => window.location.reload());
     }
+
+    // 密码强度校验
+    function checkPwdStrength(pwd) {
+        let msg = [];
+        if (pwd.length < 8) msg.push('至少8位');
+        if (!/[A-Z]/.test(pwd)) msg.push('大写字母');
+        if (!/[a-z]/.test(pwd)) msg.push('小写字母');
+        if (!/\d/.test(pwd)) msg.push('数字');
+        if (!/[^A-Za-z0-9]/.test(pwd)) msg.push('特殊字符');
+        return msg.length === 0 ? '密码强度合格' : '需包含：' + msg.join('、');
+    }
+    document.getElementById('createUserPassword').addEventListener('input', function () {
+        const hint = document.getElementById('createUserPwdHint');
+        const msg = checkPwdStrength(this.value);
+        hint.textContent = msg;
+        hint.className = msg === '密码强度合格' ? 'form-text text-success' : 'form-text text-danger';
+    });
 </script>
 {% endblock %}

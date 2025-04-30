@@ -2,8 +2,27 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from extensions import db
 from models import User, ProfileLog
+import re
 
 user_bp = Blueprint('user', __name__, url_prefix='/user')
+
+def validate_strong_password(password):
+    """
+    密码强度校验：
+    - 至少8位
+    - 包含大写字母、小写字母、数字和特殊字符
+    """
+    if len(password) < 8:
+        return False, '密码长度至少8位'
+    if not re.search(r'[A-Z]', password):
+        return False, '密码需包含大写字母'
+    if not re.search(r'[a-z]', password):
+        return False, '密码需包含小写字母'
+    if not re.search(r'\d', password):
+        return False, '密码需包含数字'
+    if not re.search(r'[^A-Za-z0-9]', password):
+        return False, '密码需包含特殊字符'
+    return True, ''
 
 @user_bp.route('/profile', methods=['GET', 'POST'])
 @login_required
@@ -42,8 +61,9 @@ def user_profile():
                 if not current_user.check_password(old_password):
                     flash('旧密码错误')
                     return redirect(url_for('user.user_profile'))
-                if len(new_password) < 6:
-                    flash('密码长度至少6位')
+                valid, msg = validate_strong_password(new_password)
+                if not valid:
+                    flash(msg)
                     return redirect(url_for('user.user_profile'))
                 log = ProfileLog(
                     user_id=current_user.id,
@@ -74,6 +94,9 @@ def register():
     data = request.json
     if User.query.filter_by(username=data['username']).first():
         return jsonify({'error': '用户名已存在'}), 400
+    valid, msg = validate_strong_password(data['password'])
+    if not valid:
+        return jsonify({'error': msg}), 400
     user = User(username=data['username'], role=data['role'])
     user.set_password(data['password'])
     db.session.add(user)
