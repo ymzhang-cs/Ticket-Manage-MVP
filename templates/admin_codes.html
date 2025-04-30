@@ -14,7 +14,7 @@
         </select>
 
         <!-- 导入表单 -->
-        <form id="importForm" action="{{ url_for('import_excel') }}" method="post" enctype="multipart/form-data"
+        <form id="importForm" action="{{ url_for('admin.import_excel') }}" method="post" enctype="multipart/form-data"
             class="d-flex gap-2">
             <input type="file" name="file" accept=".xlsx,.xls" required class="form-control w-auto">
             <button type="submit" class="btn btn-success">导入Excel</button>

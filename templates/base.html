@@ -15,7 +15,7 @@
     <!-- 导航栏 -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">票务管理系统</a>
+            <a class="navbar-brand" href="{{ url_for('auth.index') }}">票务管理系统</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -23,13 +23,13 @@
                 {% if current_user.is_authenticated %}
                 <ul class="navbar-nav me-auto">
                     {% if current_user.role == 'admin' %}
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('admin_dashboard') }}">管理面板</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">管理面板</a></li>
                     {% endif %}
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('scanner') }}">扫码检票</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('scan.scanner') }}">扫码检票</a></li>
                 </ul>
                 <span class="navbar-text text-white me-3">欢迎, {{ current_user.username }}</span>
-                <a href="{{ url_for('user_profile') }}" class="btn btn-outline-light me-2">个人资料</a>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-light">退出</a>
+                <a href="{{ url_for('user.user_profile') }}" class="btn btn-outline-light me-2">个人资料</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light">退出</a>
                 {% endif %}
             </div>
         </div>

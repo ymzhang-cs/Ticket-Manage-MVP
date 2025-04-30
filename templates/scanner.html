@@ -9,7 +9,10 @@
     </div>
 </div>
 
-<div class="result mt-3" id="result">等待扫码中...</div>
+<div class="result mt-3 text-bg-secondary d-flex justify-content-center align-items-center"
+    style="height: 8rem; font-size: 2.5rem; text-align: center;" id="result">
+    等待扫码中...
+</div>
 
 <!-- 响应式历史记录 -->
 <table class="table table-striped table-hover align-middle mt-4">
@@ -51,8 +54,20 @@
         }
 
         function showResult(text, status) {
+            let className = "result mt-3 d-flex justify-content-center align-items-center ";
+            switch (status) {
+                case 'valid':
+                    className += "text-bg-primary";
+                    break;
+                case 'invalid':
+                case 'error':
+                    className += "text-bg-danger";
+                    break;
+                default:
+                    className += "text-bg-secondary";
+            }
             resultElement.textContent = text;
-            resultElement.className = `result ${status}`;
+            resultElement.className = className;
         }
 
         function addHistory(code, statusText, statusClass) {
@@ -66,7 +81,7 @@
         }
 
         function verifyCode(qrCodeText) {
-            fetch("{{ url_for('scan') }}", {
+            fetch("{{ url_for('scan.scan_api') }}", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
