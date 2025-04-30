@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, current_app
 from flask_login import login_required, current_user
 from extensions import db
 from models import User, Code, ScanLog, LoginLog
 from datetime import datetime, time
 import os, io, qrcode, random, string
 from openpyxl import load_workbook
+from werkzeug.utils import secure_filename
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -121,10 +122,16 @@ def import_excel():
     file = request.files['file']
     if not file.filename.endswith(('.xlsx', '.xls')):
         return jsonify({'error': '文件格式错误'}), 400
-    filepath = os.path.join(os.getenv('UPLOAD_FOLDER', 'uploads/'), file.filename)
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    os.makedirs(filepath, exist_ok=True)  # 确保目录存在
+    
+    # 生成新文件名
+    username = current_user.username
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    ext = os.path.splitext(file.filename)[1]
+    new_filename = f"{username}-{timestamp}{ext}"
+    filepath = os.path.join(upload_folder, secure_filename(new_filename))
     file.save(filepath)
-    success_count = 0
-    fail_count = 0
     try:
         wb = load_workbook(filepath)
         ws = wb.active
