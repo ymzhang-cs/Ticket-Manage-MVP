@@ -1,0 +1,16 @@
+.git
+.gitignore
+.vscode/
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+instance/tickets.db     # 开发数据库（生产环境建议使用外部数据库）
+*.xlsx
+.DS_Store
+*.md
+README.md
